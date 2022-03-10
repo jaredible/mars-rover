@@ -1,0 +1,16 @@
+#world {
+    margin: 20px;
+}
+
+#player {
+    margin: 10px;
+}
+
+#buttons {
+    margin: 10px 50px;
+}
+
+#buttons button {
+    margin: 2px;
+    width: 50px;
+}

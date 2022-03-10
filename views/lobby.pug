@@ -1,0 +1,19 @@
+extends layout.pug
+
+block head
+    link(rel='stylesheet', href='/css/lobby.css')
+
+block content
+    h1.title Welcome to the lobby!
+
+    h2 Worlds:
+    each world in worlds
+        .world
+            p
+                | #{world} 
+                a(href=`/world/${world}`) Join
+    
+    button(onclick='createWorld()') New World
+
+block scripts
+    script(src='/js/lobby.js')

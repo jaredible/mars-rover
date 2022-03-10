@@ -1,0 +1,24 @@
+extends layout.pug
+
+block head
+    link(rel='stylesheet', href='/css/world.css')
+
+block content
+    h1.title World: #{id}
+
+    canvas#world(width='600', height='600')
+
+    div#buttons
+        button#up(onclick='movePlayer(DIRECTIONS.UP)') Up
+        button#down(onclick='movePlayer(DIRECTIONS.DOWN)') Down
+        button#left(onclick='movePlayer(DIRECTIONS.LEFT)') Left
+        button#right(onclick='movePlayer(DIRECTIONS.RIGHT)') Right
+
+    div
+        #id(data=`${id}`)
+        img#tile(src='/img/tile.jpg', width='100', height='100', alt='Mars Sand', hidden)
+        img#player(src='/img/player.png', width='100', height='100', alt='Player', hidden)
+
+block scripts
+    script(src='https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js', integrity='sha512-iqRVtNB+t9O+epcgUTIPF+nklypcR23H1yR1NFM9kffn6/iBhZ9bTB6oKLaGMv8JE9UgjcwfBFg/eHC/VMws+g==', crossorigin='anonymous', referrerpolicy='no-referrer')
+    script(src='/js/world.js')
