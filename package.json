@@ -1,15 +1,20 @@
 {
   "name": "mars-rover-game",
   "version": "1.0.0",
-  "description": "",
+  "description": "A Mars rover multiplayer game (WIP)",
   "main": "app.js",
   "scripts": {
     "dev": "NODE_ENV=development nodemon app.js",
     "start": "NODE_ENV=production node app.js"
   },
-  "keywords": [],
-  "author": "",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jaredible/mars-rover.git"
+  },
+  "keywords": ["mars", "rover", "multiplayer", "game"],
+  "author": "Jared Diehl",
   "license": "ISC",
+  "homepage": "https://github.com/jaredible/mars-rover#readme",
   "dependencies": {
     "express": "^4.17.3",
     "pug": "^3.0.2",
