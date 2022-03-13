@@ -1,3 +1,9 @@
+const socket = io("/lobby");
+
+socket.on("world-update", function() {
+    location.reload();
+});
+
 function createWorld() {
     var xhr = new XMLHttpRequest();
     xhr.onreadystatechange = function () {

@@ -14,6 +14,9 @@ const ENV = app.get('env')
 // App config
 const DEBUG = true
 
+const lobbyNamespace = io.of('/lobby')
+const worldNamespace = io.of('/world')
+
 let clients = {}
 let worlds = {
     "w0": {
@@ -100,7 +103,6 @@ app.get('/world/:name', (req, res, next) => {
             y: Math.floor(Math.random() * ((worlds[worldName].size - 1) - 1)) + 1
         }
     }
-    console.log(playerName);
 
     res.render('world', {
         title: `Mars Rover World (${worldName})`,
@@ -127,7 +129,7 @@ app.use((err, req, res, next) => {
     })
 })
 
-io.on('connection', (socket) => {
+worldNamespace.on('connection', (socket) => {
     if (DEBUG) console.log(`Client ${socket.id} connected`)
     clients[socket.id] = socket
 
@@ -141,7 +143,8 @@ io.on('connection', (socket) => {
         socket.playerName = playerName
         if (DEBUG) console.log(`Player ${playerName} joined ${worldName}`)
 
-        io.in(worldName).emit('world-update', worlds[worldName])
+        worldNamespace.to(worldName).emit('world-update', worlds[worldName])
+        lobbyNamespace.emit('world-update')
     })
 
     socket.on('player-move', (direction) => {
@@ -150,8 +153,6 @@ io.on('connection', (socket) => {
         if (!worlds[socket.worldName]) return
         if (!worlds[socket.worldName].players) return
         if (!worlds[socket.worldName].players[socket.playerName]) return
-
-        console.log('HERE')
 
         // Compute position difference
         let dx = 0, dy = 0
@@ -181,7 +182,7 @@ io.on('connection', (socket) => {
             worlds[socket.worldName].players[socket.playerName].position.y = y
         }
 
-        io.in(socket.worldName).emit('world-update', worlds[socket.worldName])
+        worldNamespace.to(socket.worldName).emit('world-update', worlds[socket.worldName])
     })
 
     socket.on('disconnect', () => {
@@ -202,10 +203,11 @@ io.on('connection', (socket) => {
         if (Object.keys(worlds[socket.worldName].players).length == 0) {
             if (DEBUG) console.log(`World ${socket.worldName} deleted`)
             delete worlds[socket.worldName]
+            lobbyNamespace.emit('world-update')
             return
         }
 
-        io.in(socket.worldName).emit('world-update', worlds[socket.worldName])
+        worldNamespace.to(socket.worldName).emit('world-update', worlds[socket.worldName])
     })
 })
 
@@ -220,4 +222,3 @@ server.listen(PORT, HOST, () => {
 // TODO: Try functional style, not OOP (and maybe Webpack)
 // TODO: Use Selenium to generate a screenshot of the game automatically (before pushing)
 // FEATURE: AI players (ie, bots)
-// TODO: Live lobby updates

@@ -1,4 +1,4 @@
-const socket = io();
+const socket = io("/world");
 const worldName = document.getElementById("data").getAttribute("world");
 const playerName = document.getElementById("data").getAttribute("player");
 
@@ -88,3 +88,10 @@ window.onload = function() {
     drawWorld();
     socket.emit("world-join", worldName, playerName);
 };
+
+window.addEventListener('keydown', function(event) {
+    if (event.key === "w" || event.key === "ArrowUp") movePlayer("up")
+    if (event.key === "s" || event.key === "ArrowDown") movePlayer("down")
+    if (event.key === "a" || event.key === "ArrowLeft") movePlayer("left")
+    if (event.key === "d" || event.key === "ArrowRight") movePlayer("right")
+}, false);
