@@ -70,14 +70,14 @@ io.on('connection', (socket) => {
     socket.on('world-joined', (name) => {
         socket.join(name)
         // TODO: fix crash somewhere here
-        worlds[name].players[socket.id] = {
+        worlds[name].players[socket.id] = { // BUG: Assuming world and player exists, but do they?
             position: {
                 x: (Math.floor(Math.random() * ((WORLD_SIZE - 1) - 1)) + 1),
                 y: (Math.floor(Math.random() * ((WORLD_SIZE - 1) - 1)) + 1)
             }
         }
         socket.world = name
-        io.in(name).emit('world-updated', worlds[name])
+        io.in(name).emit('world-updated', worlds[name]) // Send current world state
     })
 
     socket.on('player-moved', (name, direction) => {
@@ -103,10 +103,10 @@ io.on('connection', (socket) => {
         if (worlds[socket.world].players[name].position.x > (WORLD_SIZE - 1) - 1) {
             worlds[socket.world].players[name].position.x = (WORLD_SIZE - 1) - 1;
         }
-        io.in(socket.world).emit('world-updated', worlds[socket.world])
+        io.in(socket.world).emit('world-updated', worlds[socket.world]) // Send current world state
     })
 
-    socket.on('world-left', () => {})
+    socket.on('world-left', () => { })
 
     socket.on('disconnect', () => {
         console.log(`Client ${socket.id} disconnected`)
@@ -120,7 +120,7 @@ io.on('connection', (socket) => {
                     console.log(`World ${socket.world} deleted`)
                     delete worlds[socket.world]
                 } else { // Update only if there are players in the world still
-                    io.in(socket.world).emit("'world-updated'", worlds[socket.world])
+                    io.in(socket.world).emit('world-updated', worlds[socket.world]) // Send current world state
                 }
             }
         }
@@ -130,3 +130,5 @@ io.on('connection', (socket) => {
 server.listen(PORT, HOST, () => {
     console.log(`${ENV.charAt(0).toUpperCase() + ENV.substring(1)} app listening at http://${server.address().address}:${server.address().port}`)
 })
+
+// TODO: Present error page upon going to non-existent world.
