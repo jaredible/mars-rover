@@ -51,14 +51,17 @@ app.get('/lobby', (req, res) => {
     res.render('lobby', { title: 'Mars Rover Lobby', worlds: Object.keys(worlds) })
 })
 
+// Create world
 app.post('/world', (req, res) => {
     const id = `world_${Object.keys(worlds).length}`
-    worlds[id] = { players: {} }
+    worlds[id] = { players: {} } // BUG: Could reset world state that already exists?
     console.log(`World ${id} created`)
     res.json({ name: id })
 })
 
+// Open world
 app.get('/world/:id', (req, res) => {
+    // TODO: Should we check if the world actually exists first? Otherwise, redirect to 404 page?
     const id = req.params.id;
     res.render('world', { title: `Mars Rover World (${id})`, id: id })
 })
@@ -127,8 +130,25 @@ io.on('connection', (socket) => {
     })
 })
 
+// 404 handler
+app.use((req, res, next) => {
+    res.status(404).render('error')
+})
+
+// Error handler
+app.use((err, req, res, next) => {
+    const statusCode = res.statusCode === 200 ? 500 : res.statusCode
+    res.status(statusCode)
+    res.json({
+        message: err.message,
+        stack: process.env.NODE_ENV === "production" ? null : err.stack,
+    })
+})
+
 server.listen(PORT, HOST, () => {
     console.log(`${ENV.charAt(0).toUpperCase() + ENV.substring(1)} app listening at http://${server.address().address}:${server.address().port}`)
 })
 
 // TODO: Present error page upon going to non-existent world.
+// TODO: Refreshing world page crashes app...
+// FEATURE: Allow world to be created by typing custom world ID in URL? No matter if "/world" was hit.
