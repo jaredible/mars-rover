@@ -42,6 +42,9 @@ function drawWorld(world) {
 }
 
 function drawPlayers(canvas, world) {
+    if (!canvas) return;
+    if (!world.players) return;
+    
     for (const [key, value] of Object.entries(world.players)) {
         drawPlayer(canvas, world, {
             name: key,
@@ -51,24 +54,33 @@ function drawPlayers(canvas, world) {
 }
 
 function drawPlayer(canvas, world, player) {
+    if (!canvas) return;
+    if (!world) return;
+    if (!player) return;
+
     const ctx = canvas.getContext("2d");
     const w = canvas.clientWidth, h = canvas.clientHeight;
 
-    const image = document.getElementById("player");
     const x = player.position.x, y = player.position.y;
     const xo = x * (w / world.size), yo = y * (h / world.size);
     const ww = w / world.size, hh = h / world.size;
+
+    // Draw transparent box behind player
     ctx.fillStyle = "rgba(225, 225, 225, 0.5)";
     ctx.fillRect(xo, yo, ww, hh);
+
+    // Draw player
+    const image = document.getElementById("player");
     ctx.drawImage(image, xo, yo, ww, hh);
-    ctx.textAlign = "center";
+
+    // Draw player name
     ctx.font = "25px serif";
     ctx.fillStyle = "yellow";
+    ctx.textAlign = "center";
     ctx.fillText(player.name, xo + ww / 2, yo - world.size);
 }
 
 function movePlayer(direction) {
-    console.log(direction);
     socket.emit("player-move", direction);
 }
 

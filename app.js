@@ -169,8 +169,17 @@ io.on('connection', (socket) => {
         y += dy
         x = Math.max(1, Math.min(x, (worlds[socket.worldName].size - 1) - 1))
         y = Math.max(1, Math.min(y, (worlds[socket.worldName].size - 1) - 1))
-        worlds[socket.worldName].players[socket.playerName].position.x = x
-        worlds[socket.worldName].players[socket.playerName].position.y = y
+
+        // Update player position
+        var updatePosition = true
+        for (const [key, value] of Object.entries(worlds[socket.worldName].players)) {
+            // Ensure we don't overlap with another player
+            if (x == value.position.x && y == value.position.y) updatePosition = false
+        }
+        if (updatePosition) {
+            worlds[socket.worldName].players[socket.playerName].position.x = x
+            worlds[socket.worldName].players[socket.playerName].position.y = y
+        }
 
         io.in(socket.worldName).emit('world-update', worlds[socket.worldName])
     })
@@ -209,3 +218,6 @@ server.listen(PORT, HOST, () => {
 // TODO: Refreshing world page crashes app...
 // FEATURE: Allow world to be created by typing custom world ID in URL? No matter if "/world" was hit.
 // TODO: Try functional style, not OOP (and maybe Webpack)
+// TODO: Use Selenium to generate a screenshot of the game automatically (before pushing)
+// FEATURE: AI players (ie, bots)
+// TODO: Live lobby updates
