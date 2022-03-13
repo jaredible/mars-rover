@@ -4,18 +4,18 @@ block head
     link(rel='stylesheet', href='/css/world.css')
 
 block content
-    h1.title World: #{id}
+    h1.title World: #{worldName} (size:#{worldState.size})
 
-    canvas#world(width='600', height='600')
+    canvas#screen(width='600', height='600')
 
     div#buttons
-        button#up(onclick='movePlayer(DIRECTIONS.UP)') Up
-        button#down(onclick='movePlayer(DIRECTIONS.DOWN)') Down
-        button#left(onclick='movePlayer(DIRECTIONS.LEFT)') Left
-        button#right(onclick='movePlayer(DIRECTIONS.RIGHT)') Right
+        button#up(onclick='movePlayer("up")') Up
+        button#down(onclick='movePlayer("down")') Down
+        button#left(onclick='movePlayer("left")') Left
+        button#right(onclick='movePlayer("right")') Right
 
     div
-        #id(data=`${id}`)
+        #data(world=`${worldName}`, player=`${playerName}`)
         img#tile(src='/img/tile.jpg', width='100', height='100', alt='Mars Sand', hidden)
         img#player(src='/img/player.png', width='100', height='100', alt='Player', hidden)
 

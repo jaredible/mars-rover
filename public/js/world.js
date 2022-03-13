@@ -1,95 +1,78 @@
 const socket = io();
-const id = document.getElementById("id").getAttribute("data");
-let player = '';
+const worldName = document.getElementById("data").getAttribute("world");
+const playerName = document.getElementById("data").getAttribute("player");
 
-socket.on("world-updated", function(world) {
-    console.log(world);
-    players = world.players;
-    drawWorld();
+socket.on("world-update", function(world) {
+    drawWorld(world);
 });
 
-const DIRECTIONS = {
-    STILL: 0,
-    UP: 1,
-    DOWN: 2,
-    LEFT: 3,
-    RIGHT: 4
-};
+function drawWorld(world) {
+    if (!world) return;
 
-let players = {};
-
-function drawPlayer(player) {
-    const canvas = document.getElementById("world");
+    const canvas = document.getElementById("screen");
     const ctx = canvas.getContext("2d");
-    const image = document.getElementById("player");
-    const W = canvas.clientWidth, H = canvas.clientHeight, N = 12;
+    const w = canvas.clientWidth, h = canvas.clientHeight;
 
-    const name = player.name;
-    const x = player.position.x, y = player.position.y;
-    const xo = x * (W / N), yo = y * (H / N);
-    const ww = W / N, hh = H / N;
-    ctx.fillStyle = 'rgba(225, 225, 225, 0.5)';
-    ctx.fillRect(xo, yo, ww, hh);
-    ctx.drawImage(image, xo, yo, ww, hh);
-    ctx.textAlign = "center";
-    ctx.font = '25px serif';
-    ctx.fillStyle = 'yellow';
-    ctx.fillText(name, xo + ww / 2, yo - N);
+    // Clear screen
+    ctx.clearRect(0, 0, w, h);
+    
+    // Draw background
+    const tile = document.getElementById("tile");
+    for (var y = 0; y < world.size; y++) {
+        for (var x = 0; x < world.size; x++) {
+            const xo = x * (w / world.size), yo = y * (h / world.size);
+            const ww = w / world.size, hh = h / world.size;
+            ctx.drawImage(tile, xo, yo, ww, hh);
+        }
+    }
+
+    // Draw world border
+    for (var y = 0; y < world.size; y++) {
+        for (var x = 0; x < world.size; x++) {
+            if (x == 0 || y == 0 || x == world.size - 1 || y ==  world.size - 1) {
+                const xo = x * (w / world.size), yo = y * (h / world.size);
+                const ww = w / world.size, hh = h / world.size;
+                ctx.fillStyle = "rgba(225, 0, 0, 0.25)";
+                ctx.fillRect(xo, yo, ww, hh);
+            }
+        }
+    }
+
+    drawPlayers(canvas, world);
 }
 
-function drawPlayers() {
-    for (const [key, value] of Object.entries(players)) {
-        drawPlayer({
+function drawPlayers(canvas, world) {
+    for (const [key, value] of Object.entries(world.players)) {
+        drawPlayer(canvas, world, {
             name: key,
             ...value
         });
     }
 }
 
-function drawWorldBorder() {
-    const canvas = document.getElementById("world");
+function drawPlayer(canvas, world, player) {
     const ctx = canvas.getContext("2d");
-    const W = canvas.clientWidth, H = canvas.clientHeight, N = 12;
+    const w = canvas.clientWidth, h = canvas.clientHeight;
 
-    for (var y = 0; y < N; y++) {
-        for (var x = 0; x < N; x++) {
-            if (x == 0 || y == 0 || x == N - 1 || y ==  N - 1) {
-                const xo = x * (W / N), yo = y * (H / N);
-                const ww = W / N, hh = H / N;
-                ctx.fillStyle = 'rgba(225, 0, 0, 0.25)';
-                ctx.fillRect(xo, yo, ww, hh);
-            }
-        }
-    }
-}
-
-function drawWorld() {
-    const canvas = document.getElementById("world");
-    const ctx = canvas.getContext("2d");
-    
-    ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
-    
-    const N = 12;
-    var w = canvas.clientWidth, h = canvas.clientHeight;
-    const tile = document.getElementById("tile");
-    for (var y = 0; y < N; y++) {
-        for (var x = 0; x < N; x++) {
-            ctx.drawImage(tile, x * (w / N), y * (h / N), w / N, h / N);
-        }
-    }
-
-    drawWorldBorder();
-
-    drawPlayers();
+    const image = document.getElementById("player");
+    const x = player.position.x, y = player.position.y;
+    const xo = x * (w / world.size), yo = y * (h / world.size);
+    const ww = w / world.size, hh = h / world.size;
+    ctx.fillStyle = "rgba(225, 225, 225, 0.5)";
+    ctx.fillRect(xo, yo, ww, hh);
+    ctx.drawImage(image, xo, yo, ww, hh);
+    ctx.textAlign = "center";
+    ctx.font = "25px serif";
+    ctx.fillStyle = "yellow";
+    ctx.fillText(player.name, xo + ww / 2, yo - world.size);
 }
 
 function movePlayer(direction) {
     console.log(direction);
-    socket.emit("player-moved", socket.id, direction);
+    socket.emit("player-move", direction);
 }
 
 window.onload = function() {
     drawWorld();
-
-    socket.emit("world-joined", id);
+    socket.emit("world-join", worldName, playerName);
 };

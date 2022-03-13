@@ -10,8 +10,8 @@ block content
     each world in worlds
         .world
             p
-                | #{world} 
-                a(href=`/world/${world}`) Join
+                | #{world.name} (size:#{world.size}) (players:#{world.playerCount}) 
+                a(href=`/world/${world.name}`) Join
     
     button(onclick='createWorld()') New World
 

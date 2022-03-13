@@ -6,36 +6,31 @@ const app = express()
 const server = require('http').Server(app)
 const io = require('socket.io')(server)
 
+// Server config
 const PORT = process.env.port || 8000
 const HOST = process.env.host || 'localhost'
 const ENV = app.get('env')
 
-const DIRECTIONS = {
-    STILL: 0,
-    UP: 1,
-    DOWN: 2,
-    LEFT: 3,
-    RIGHT: 4
-};
-
-const WORLD_SIZE = 12;
+// App config
+const DEBUG = true
 
 let clients = {}
 let worlds = {
-    "world_0": {
+    "w0": {
+        size: 12,
         players: {
-            "test_player_0": {
+            "p0": {
                 position: {
                     x: 2,
                     y: 2
                 }
             },
-            "test_player_1": {
+            "p1": {
                 position: {
                     x: 8,
                     y: 8
                 }
-            },
+            }
         }
     }
 }
@@ -48,100 +43,160 @@ app.get('/', (req, res) => {
 })
 
 app.get('/lobby', (req, res) => {
-    res.render('lobby', { title: 'Mars Rover Lobby', worlds: Object.keys(worlds) })
+    res.render('lobby', {
+        title: 'Mars Rover Lobby',
+        worlds: Object.keys(worlds).map(function(key) {
+            return {
+                name: key,
+                size: worlds[key].size,
+                playerCount: Object.keys(worlds[key].players).length
+            }
+        })
+    })
 })
 
 // Create world
-app.post('/world', (req, res) => {
-    const id = `world_${Object.keys(worlds).length}`
-    worlds[id] = { players: {} } // BUG: Could reset world state that already exists?
-    console.log(`World ${id} created`)
-    res.json({ name: id })
+app.post('/world', (req, res, next) => {
+    // Generate new world name
+    const worldName = `w${Object.keys(worlds).length}`
+
+    // Throw error if world already exists
+    if (worlds[worldName]) {
+        const error = new Error(`World Exists - ${worldName}`)
+        next(error)
+        return
+    }
+
+    // Instantiate world with no players
+    worlds[worldName] = {
+        size: Math.floor(Math.random() * (15 - 5)) + 5,
+        players: {}
+    }
+    if (DEBUG) console.log(`World ${worldName} created`)
+
+    res.json({
+        name: worldName
+    })
 })
 
 // Open world
-app.get('/world/:id', (req, res) => {
-    // TODO: Should we check if the world actually exists first? Otherwise, redirect to 404 page?
-    const id = req.params.id;
-    res.render('world', { title: `Mars Rover World (${id})`, id: id })
-})
+app.get('/world/:name', (req, res, next) => {
+    // Get world name from URL
+    const worldName = req.params.name
 
-io.on('connection', (socket) => {
-    console.log(`Client ${socket.id} connected`)
-    clients[socket.id] = socket
+    // Throw error if world doesn't exist
+    if (!worlds[worldName]) {
+        const error = new Error(`World Not Found - ${worldName}`)
+        next(error)
+        return
+    }
 
-    socket.on('world-joined', (name) => {
-        socket.join(name)
-        // TODO: fix crash somewhere here
-        worlds[name].players[socket.id] = { // BUG: Assuming world and player exists, but do they?
-            position: {
-                x: (Math.floor(Math.random() * ((WORLD_SIZE - 1) - 1)) + 1),
-                y: (Math.floor(Math.random() * ((WORLD_SIZE - 1) - 1)) + 1)
-            }
+    // Get new player name
+    const playerName = `p${Object.keys(worlds[worldName].players).length}`
+    // Instantiate player in world
+    worlds[worldName].players[playerName] = {
+        position: {
+            x: Math.floor(Math.random() * ((worlds[worldName].size - 1) - 1)) + 1,
+            y: Math.floor(Math.random() * ((worlds[worldName].size - 1) - 1)) + 1
         }
-        socket.world = name
-        io.in(name).emit('world-updated', worlds[name]) // Send current world state
-    })
+    }
+    console.log(playerName);
 
-    socket.on('player-moved', (name, direction) => {
-        if (direction == DIRECTIONS.STILL) {
-        } else if (direction == DIRECTIONS.UP) {
-            worlds[socket.world].players[name].position.y--
-        } else if (direction == DIRECTIONS.DOWN) {
-            worlds[socket.world].players[name].position.y++
-        } else if (direction == DIRECTIONS.LEFT) {
-            worlds[socket.world].players[name].position.x--
-        } else if (direction == DIRECTIONS.RIGHT) {
-            worlds[socket.world].players[name].position.x++
-        }
-        if (worlds[socket.world].players[name].position.y < 1) {
-            worlds[socket.world].players[name].position.y = 1;
-        }
-        if (worlds[socket.world].players[name].position.y > (WORLD_SIZE - 1) - 1) {
-            worlds[socket.world].players[name].position.y = (WORLD_SIZE - 1) - 1;
-        }
-        if (worlds[socket.world].players[name].position.x < 1) {
-            worlds[socket.world].players[name].position.x = 1;
-        }
-        if (worlds[socket.world].players[name].position.x > (WORLD_SIZE - 1) - 1) {
-            worlds[socket.world].players[name].position.x = (WORLD_SIZE - 1) - 1;
-        }
-        io.in(socket.world).emit('world-updated', worlds[socket.world]) // Send current world state
-    })
-
-    socket.on('world-left', () => { })
-
-    socket.on('disconnect', () => {
-        console.log(`Client ${socket.id} disconnected`)
-        delete clients[socket.id]
-
-        // Make extra sure we can delete
-        if (socket.world && worlds[socket.world]) {
-            if (socket.id && worlds[socket.world].players[socket.id]) {
-                delete worlds[socket.world].players[socket.id]
-                if (Object.keys(worlds[socket.world].players).length == 0) {
-                    console.log(`World ${socket.world} deleted`)
-                    delete worlds[socket.world]
-                } else { // Update only if there are players in the world still
-                    io.in(socket.world).emit('world-updated', worlds[socket.world]) // Send current world state
-                }
-            }
-        }
+    res.render('world', {
+        title: `Mars Rover World (${worldName})`,
+        worldName: worldName,
+        playerName: playerName,
+        worldState: worlds[worldName]
     })
 })
 
 // 404 handler
 app.use((req, res, next) => {
-    res.status(404).render('error')
+    const error = new Error(`Page Not Found - ${req.originalUrl}`)
+    res.status(404)
+    next(error)
 })
 
 // Error handler
 app.use((err, req, res, next) => {
     const statusCode = res.statusCode === 200 ? 500 : res.statusCode
     res.status(statusCode)
-    res.json({
+    res.render('error', {
         message: err.message,
-        stack: process.env.NODE_ENV === "production" ? null : err.stack,
+        stack: process.env.NODE_ENV === 'production' ? null : err.stack,
+    })
+})
+
+io.on('connection', (socket) => {
+    if (DEBUG) console.log(`Client ${socket.id} connected`)
+    clients[socket.id] = socket
+
+    socket.on('world-join', (worldName, playerName) => {
+        // Gaurd against nulls
+        if (!worlds[worldName]) return
+        if (!worlds[worldName].players) return
+
+        socket.join(worldName)
+        socket.worldName = worldName
+        socket.playerName = playerName
+        if (DEBUG) console.log(`Player ${playerName} joined ${worldName}`)
+
+        io.in(worldName).emit('world-update', worlds[worldName])
+    })
+
+    socket.on('player-move', (direction) => {
+        // Gaurd against nulls
+        if (!socket.worldName) return
+        if (!worlds[socket.worldName]) return
+        if (!worlds[socket.worldName].players) return
+        if (!worlds[socket.worldName].players[socket.playerName]) return
+
+        console.log('HERE')
+
+        // Compute position difference
+        let dx = 0, dy = 0
+        if (direction === '') {}
+        else if (direction === 'up') dy--
+        else if (direction === 'down') dy++
+        else if (direction === 'left') dx--
+        else if (direction === 'right') dx++
+        if (DEBUG) console.log(`Player ${socket.playerName} moved ${direction} in ${socket.worldName}`)
+
+        // Compute new position
+        let x = worlds[socket.worldName].players[socket.playerName].position.x
+        let y = worlds[socket.worldName].players[socket.playerName].position.y
+        x += dx
+        y += dy
+        x = Math.max(1, Math.min(x, (worlds[socket.worldName].size - 1) - 1))
+        y = Math.max(1, Math.min(y, (worlds[socket.worldName].size - 1) - 1))
+        worlds[socket.worldName].players[socket.playerName].position.x = x
+        worlds[socket.worldName].players[socket.playerName].position.y = y
+
+        io.in(socket.worldName).emit('world-update', worlds[socket.worldName])
+    })
+
+    socket.on('disconnect', () => {
+        if (DEBUG) console.log(`Client ${socket.id} disconnected`)
+        delete clients[socket.id]
+
+        // Gaurd against nulls
+        if (!socket.worldName) return
+        if (!worlds[socket.worldName]) return
+        if (!worlds[socket.worldName].players) return
+        if (!worlds[socket.worldName].players[socket.playerName]) return
+
+        // Remove player from world
+        delete worlds[socket.worldName].players[socket.playerName]
+        if (DEBUG) console.log(`Player ${socket.playerName} left ${socket.worldName}`)
+
+        // Delete world if no players exist
+        if (Object.keys(worlds[socket.worldName].players).length == 0) {
+            if (DEBUG) console.log(`World ${socket.worldName} deleted`)
+            delete worlds[socket.worldName]
+            return
+        }
+
+        io.in(socket.worldName).emit('world-update', worlds[socket.worldName])
     })
 })
 
@@ -149,6 +204,8 @@ server.listen(PORT, HOST, () => {
     console.log(`${ENV.charAt(0).toUpperCase() + ENV.substring(1)} app listening at http://${server.address().address}:${server.address().port}`)
 })
 
+// Ideas:
 // TODO: Present error page upon going to non-existent world.
 // TODO: Refreshing world page crashes app...
 // FEATURE: Allow world to be created by typing custom world ID in URL? No matter if "/world" was hit.
+// TODO: Try functional style, not OOP (and maybe Webpack)
