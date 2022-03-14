@@ -8,11 +8,12 @@ block content
 
     canvas#screen(width='600', height='600')
 
-    #buttons
+    #controls
         button#up(onclick='movePlayer("up")') Up
         button#down(onclick='movePlayer("down")') Down
         button#left(onclick='movePlayer("left")') Left
         button#right(onclick='movePlayer("right")') Right
+        button#bot(onclick='spawnBot()') Spawn bot
     
     a(href='/') Return to Lobby
 

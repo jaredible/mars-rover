@@ -23,12 +23,14 @@ let worlds = {
         size: 12,
         players: {
             "p0": {
+                bot: true,
                 position: {
                     x: 2,
                     y: 2
                 }
             },
             "p1": {
+                bot: true,
                 position: {
                     x: 8,
                     y: 8
@@ -94,15 +96,7 @@ app.get('/world/:name', (req, res, next) => {
         return
     }
 
-    // Get new player name
-    const playerName = `p${Object.keys(worlds[worldName].players).length}`
-    // Instantiate player in world
-    worlds[worldName].players[playerName] = {
-        position: {
-            x: Math.floor(Math.random() * ((worlds[worldName].size - 1) - 1)) + 1,
-            y: Math.floor(Math.random() * ((worlds[worldName].size - 1) - 1)) + 1
-        }
-    }
+    const playerName = spawnPlayer(worldName, false)
 
     res.render('world', {
         title: `Mars Rover World (${worldName})`,
@@ -149,7 +143,6 @@ worldNamespace.on('connection', (socket) => {
 
     socket.on('player-move', (direction) => {
         // Gaurd against nulls
-        if (!socket.worldName) return
         if (!worlds[socket.worldName]) return
         if (!worlds[socket.worldName].players) return
         if (!worlds[socket.worldName].players[socket.playerName]) return
@@ -163,25 +156,11 @@ worldNamespace.on('connection', (socket) => {
         else if (direction === 'right') dx++
         if (DEBUG) console.log(`Player ${socket.playerName} moved ${direction} in ${socket.worldName}`)
 
-        // Compute new position
-        let x = worlds[socket.worldName].players[socket.playerName].position.x
-        let y = worlds[socket.worldName].players[socket.playerName].position.y
-        x += dx
-        y += dy
-        x = Math.max(1, Math.min(x, (worlds[socket.worldName].size - 1) - 1))
-        y = Math.max(1, Math.min(y, (worlds[socket.worldName].size - 1) - 1))
+        movePlayer(socket.worldName, socket.playerName, dx, dy)
+    })
 
-        // Update player position
-        var updatePosition = true
-        for (const [key, value] of Object.entries(worlds[socket.worldName].players)) {
-            // Ensure we don't overlap with another player
-            if (x == value.position.x && y == value.position.y) updatePosition = false
-        }
-        if (updatePosition) {
-            worlds[socket.worldName].players[socket.playerName].position.x = x
-            worlds[socket.worldName].players[socket.playerName].position.y = y
-        }
-
+    socket.on('bot-spawn', () => {
+        spawnPlayer(socket.worldName, true)
         worldNamespace.to(socket.worldName).emit('world-update', worlds[socket.worldName])
     })
 
@@ -215,8 +194,67 @@ server.listen(PORT, HOST, () => {
     console.log(`${ENV.charAt(0).toUpperCase() + ENV.substring(1)} app listening at http://${server.address().address}:${server.address().port}`)
 })
 
+function spawnPlayer(worldName, bot) {
+    // Gaurd against nulls
+    if (!worlds[worldName]) return
+    if (!worlds[worldName].players) return
+
+    // Get new player name
+    const playerName = `p${Object.keys(worlds[worldName].players).length}`
+    // Instantiate player in world
+    worlds[worldName].players[playerName] = {
+        bot,
+        position: {
+            x: Math.floor(Math.random() * ((worlds[worldName].size - 1) - 1)) + 1,
+            y: Math.floor(Math.random() * ((worlds[worldName].size - 1) - 1)) + 1
+        }
+    }
+
+    return playerName
+}
+
+function movePlayer(worldName, playerName, dx, dy) {
+    // Gaurd against nulls
+    if (!worlds[worldName]) return
+    if (!worlds[worldName].players) return
+    if (!worlds[worldName].players[playerName]) return
+    if (dx == 0 && dy == 0) return // Doesn't move
+
+    // Compute new position
+    let x = worlds[worldName].players[playerName].position.x
+    let y = worlds[worldName].players[playerName].position.y
+    x += dx
+    y += dy
+    x = Math.max(1, Math.min(x, (worlds[worldName].size - 1) - 1))
+    y = Math.max(1, Math.min(y, (worlds[worldName].size - 1) - 1))
+
+    // Update player position
+    var updatePosition = true
+    for (const [key, value] of Object.entries(worlds[worldName].players)) {
+        // Ensure we don't overlap with another player
+        if (x == value.position.x && y == value.position.y) updatePosition = false
+    }
+    if (updatePosition) {
+        worlds[worldName].players[playerName].position.x = x
+        worlds[worldName].players[playerName].position.y = y
+    }
+
+    worldNamespace.to(worldName).emit('world-update', worlds[worldName])
+}
+
+const botUpdateInterval = setInterval(() => {
+    for (const [worldName, world] of Object.entries(worlds)) {
+        for (const [playerName, player] of Object.entries(world.players)) {
+            if (player.bot && Math.random() * 100 < 50) {
+                const direction = (Math.floor(Math.random() * (3 - 0 + 1) + 0)).toString(2)
+                const dx = parseInt(direction[0] * 2 - 1), dy = parseInt((direction[1] || 0) * 2 - 1)
+                movePlayer(worldName, playerName, dx, dy)
+            }
+        }
+    }
+}, 1000);
+
 // Ideas:
 // TODO: Try functional style, not OOP (and maybe Webpack)
 // TODO: Use Selenium to generate a screenshot of the game automatically (before pushing)
-// FEATURE: AI players (ie, bots)
-// FEATURE:  Chat system
+// FEATURE: Chat system

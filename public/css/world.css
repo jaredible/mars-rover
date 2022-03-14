@@ -6,11 +6,15 @@
     margin: 10px;
 }
 
-#buttons {
+#controls {
     margin: 10px 50px;
 }
 
-#buttons button {
+#controls button {
     margin: 2px;
     width: 50px;
+}
+
+#bot {
+    width: 80px !important;
 }

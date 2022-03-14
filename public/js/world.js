@@ -84,6 +84,10 @@ function movePlayer(direction) {
     socket.emit("player-move", direction);
 }
 
+function spawnBot() {
+    socket.emit('bot-spawn')
+}
+
 window.onload = function() {
     drawWorld();
     socket.emit("world-join", worldName, playerName);
