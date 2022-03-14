@@ -216,9 +216,7 @@ server.listen(PORT, HOST, () => {
 })
 
 // Ideas:
-// TODO: Present error page upon going to non-existent world.
-// TODO: Refreshing world page crashes app...
-// FEATURE: Allow world to be created by typing custom world ID in URL? No matter if "/world" was hit.
 // TODO: Try functional style, not OOP (and maybe Webpack)
 // TODO: Use Selenium to generate a screenshot of the game automatically (before pushing)
 // FEATURE: AI players (ie, bots)
+// FEATURE:  Chat system
